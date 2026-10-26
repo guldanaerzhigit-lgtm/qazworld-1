@@ -15,6 +15,37 @@ async function auth(request, env) { const claims = await readToken(bearer(reques
 function safeUser(u) { return { id: u.id, username: u.username, avatar: JSON.parse(u.avatar_json || "{}"), createdAt: u.created_at }; }
 async function body(request) { try { return await request.json(); } catch { return null; } }
 
+async function ensureSchema(env) {
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY NOT NULL,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      username TEXT NOT NULL COLLATE NOCASE,
+      password_hash TEXT NOT NULL,
+      password_salt TEXT NOT NULL,
+      avatar_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    )`),
+    env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_nocase ON users(username COLLATE NOCASE)"),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_progress (
+      user_id TEXT PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      coins INTEGER NOT NULL DEFAULT 350 CHECK(coins >= 0),
+      inventory_json TEXT NOT NULL DEFAULT '["hoodie"]',
+      house_json TEXT NOT NULL DEFAULT '[]',
+      updated_at TEXT NOT NULL
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS room_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room_name TEXT NOT NULL,
+      user_id TEXT,
+      event_type TEXT NOT NULL,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    )`),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_room_events_room_created ON room_events(room_name, created_at)")
+  ]);
+}
+
 export class RoomHub {
   constructor(state) { this.state = state; this.sockets = new Map(); }
   async fetch(request) {
@@ -41,6 +72,7 @@ export default {
       if (path === "/api/health") return json({ ok: true, service: "qazworld-api", version: 2 });
       if (!path.startsWith("/api/")) return env.ASSETS ? env.ASSETS.fetch(request) : fail("Static assets binding ASSETS is missing.", 503);
       if (!env.DB || !env.JWT_SECRET) return fail("Server is not configured: add D1 binding DB and JWT_SECRET secret.", 503);
+      await ensureSchema(env);
       if (path === "/api/auth/register" && request.method === "POST") {
         const b = await body(request), email = String(b && b.email || "").trim().toLowerCase(), password = String(b && b.password || ""), username = String(b && b.username || "").trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 190) return fail("Укажи корректный email.");
