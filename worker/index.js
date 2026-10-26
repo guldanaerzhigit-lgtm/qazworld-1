@@ -38,6 +38,7 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { "access-control-allow-origin": url.origin, "access-control-allow-methods": "GET,POST,PUT,OPTIONS", "access-control-allow-headers": "content-type,authorization" } });
     try {
       if (path === "/api/health") return json({ ok: true, service: "qazworld-api", version: 2 });
+      if (!path.startsWith("/api/")) return env.ASSETS ? env.ASSETS.fetch(request) : fail("Static assets binding ASSETS is missing.", 503);
       if (!env.DB || !env.JWT_SECRET) return fail("Server is not configured: add D1 binding DB and JWT_SECRET secret.", 503);
       if (path === "/api/auth/register" && request.method === "POST") {
         const b = await body(request), email = String(b && b.email || "").trim().toLowerCase(), password = String(b && b.password || ""), username = String(b && b.username || "").trim();
