@@ -22,7 +22,7 @@ function Furniture({ item, index }) {
   if (item.id === "lamp") return <group position={p}><mesh position={[0,.35,0]}><cylinderGeometry args={[.06,.08,.7,8]}/><meshStandardMaterial color="#e2c47d"/></mesh><mesh position={[0,.78,0]}><coneGeometry args={[.28,.35,12]}/><meshStandardMaterial color="#f6e4aa" emissive="#f0c76b" emissiveIntensity={.35}/></mesh></group>;
   return <group position={p}><mesh position={[0,.22,0]} rotation={[0,.3,0]}><boxGeometry args={[.85,.35,.65]}/><meshStandardMaterial color="#9a82d5" roughness={.95}/></mesh></group>;
 }
-function Scene({ room, x, z, avatar, furniture }) {
+function Scene({ room, x, z, avatar, furniture, remotePositions = {} }) {
   const home = room === "home";
   return <>
     <color attach="background" args={[home ? "#e7d9c7" : "#b7dce8"]}/>
@@ -48,6 +48,7 @@ function Scene({ room, x, z, avatar, furniture }) {
       <mesh position={[0,.38,-1.6]}><cylinderGeometry args={[.95,.95,.08,32]}/><meshStandardMaterial color="#77b8a3"/></mesh>
     </>}
     <Avatar x={x} z={z} avatar={avatar}/>
+    {Object.entries(remotePositions).map(([id,p])=><Avatar key={id} x={p.x} z={p.z} avatar={{outfit:"#42bba5",skin:"#d99a72",hair:"#392a2b"}}/>)}
     <ContactShadows position={[0,-.025,0]} opacity={.25} scale={18} blur={2.5} far={7}/>
     <OrbitControls makeDefault target={[0,1,0]} minDistance={home ? 7 : 7} maxDistance={home ? 15 : 17} maxPolarAngle={Math.PI/2.05} minPolarAngle={.38} enablePan={false}/>
   </>;
