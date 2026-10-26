@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import "./v2.css";
 import { Check, CircleUserRound, DoorOpen, Gamepad2, House, LogIn, LogOut, Save, Shirt, Wifi, WifiOff } from "lucide-react";
 import V2World from "./V2World.jsx";
 import { api, connectRoom, getToken, loadProgress, login, register, saveProgress, setToken } from "./api.js";
