@@ -2,7 +2,7 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), { status
 const fail = (error, status = 400) => json({ error }, status);
 const enc = new TextEncoder();
 const dec = new TextDecoder();
-function b64(bytes) { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_"); }
+function b64(bytes) { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
 function unb64(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); const raw = atob(s + "=".repeat((4 - s.length % 4) % 4)); return Uint8Array.from(raw, c => c.charCodeAt(0)); }
 async function key(secret) { return crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]); }
 async function makeToken(payload, secret) { const body = b64(enc.encode(JSON.stringify(payload))); const sig = await crypto.subtle.sign("HMAC", await key(secret), enc.encode(body)); return body + "." + b64(new Uint8Array(sig)); }
@@ -34,7 +34,7 @@ export class RoomHub {
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url); const path = url.pathname.replace(/\\/+$/, "") || "/";
+    const url = new URL(request.url); const path = url.pathname.replace(/\/+$/, "") || "/";
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { "access-control-allow-origin": url.origin, "access-control-allow-methods": "GET,POST,PUT,OPTIONS", "access-control-allow-headers": "content-type,authorization" } });
     try {
       if (path === "/api/health") return json({ ok: true, service: "qazworld-api", version: 2 });
@@ -42,9 +42,9 @@ export default {
       if (!env.DB || !env.JWT_SECRET) return fail("Server is not configured: add D1 binding DB and JWT_SECRET secret.", 503);
       if (path === "/api/auth/register" && request.method === "POST") {
         const b = await body(request), email = String(b && b.email || "").trim().toLowerCase(), password = String(b && b.password || ""), username = String(b && b.username || "").trim();
-        if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 190) return fail("Укажи корректный email.");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 190) return fail("Укажи корректный email.");
         if (password.length < 8 || password.length > 128) return fail("Пароль должен содержать от 8 до 128 символов.");
-        if (!/^[\\p{L}\\p{N}_ -]{2,18}$/u.test(username)) return fail("Имя игрока: 2–18 символов, буквы, цифры, пробел, дефис или _.");
+        if (!/^[\p{L}\p{N}_ -]{2,18}$/u.test(username)) return fail("Имя игрока: 2–18 символов, буквы, цифры, пробел, дефис или _.");
         const exists = await env.DB.prepare("SELECT id FROM users WHERE email = ? OR username = ? COLLATE NOCASE").bind(email, username).first();
         if (exists) return fail("Этот email или ник уже занят.", 409);
         const id = crypto.randomUUID(), pass = await passwordRecord(password), now = new Date().toISOString();
@@ -77,7 +77,7 @@ export default {
         await env.DB.batch([env.DB.prepare("UPDATE player_progress SET coins=?,inventory_json=?,house_json=?,updated_at=? WHERE user_id=?").bind(coins,JSON.stringify(inventory),JSON.stringify(house),now,u.id),env.DB.prepare("UPDATE users SET avatar_json=? WHERE id=?").bind(JSON.stringify(avatar),u.id)]);
         return json({ ok: true, updatedAt: now });
       }
-      const roomMatch = path.match(/^\\/api\\/rooms\\/([a-zA-Z0-9_-]{1,40})\\/ws$/);
+      const roomMatch = path.match(/^\/api\/rooms\/([a-zA-Z0-9_-]{1,40})\/ws$/);
       if (roomMatch && request.headers.get("upgrade") === "websocket") {
         const u = await auth(request,env); if (!u) return fail("Нужен вход в аккаунт.",401);
         const id = env.ROOMS.idFromName(roomMatch[1]), room = env.ROOMS.get(id), headers = new Headers(request.headers);
