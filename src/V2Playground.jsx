@@ -28,6 +28,8 @@ export default function V2Playground() {
   const socket = useRef(null);
   const stickRef = useRef(null);
   const [players,setPlayers] = useState([]);
+  const [remotePositions,setRemotePositions] = useState({});
+  const lastMoveAt = useRef(0);
   const [chat,setChat] = useState([]);
   const [chatText,setChatText] = useState("");
 
@@ -51,12 +53,16 @@ export default function V2Playground() {
     try {
       const ws=connectRoom(room==="home"?"my-home":"dream-square",{
         onOpen:()=>setConnected(true),onClose:()=>setConnected(false),
-        onMessage:m=>{if(m.type==="presence")setPlayers(m.players||[]);if(m.type==="chat")setChat(old=>[...old,m].slice(-30));}
+        onMessage:m=>{if(m.type==="presence")setPlayers(m.players||[]);if(m.type==="player-moved" && m.playerId!==user?.id)setRemotePositions(old=>({...old,[m.playerId]:{x:m.x,z:m.z}}));if(m.type==="chat")setChat(old=>[...old,m].slice(-30));}
       });
       socket.current=ws;
       return ()=>{ws.close();if(socket.current===ws)socket.current=null;};
     } catch { setConnected(false); }
   },[user,room]);
+  useEffect(()=>{
+    if(!user) return;
+    if(socket.current && socket.current.readyState===WebSocket.OPEN && Date.now()-lastMoveAt.current>120){socket.current.send(JSON.stringify({type:"move",x:pos.x,z:pos.z}));lastMoveAt.current=Date.now();}
+  },[user,pos]);
   useEffect(()=>{
     if(!user) return;
     const timer=setTimeout(()=>saveProgress({coins,inventory,house,avatar}).catch(e=>setMessage("Сохранение: "+e.message)),700);
@@ -87,14 +93,14 @@ export default function V2Playground() {
   };
   const endStick=()=>setStick({x:0,y:0});
   const sendChat=e=>{e.preventDefault();const text=chatText.trim();if(text&&socket.current&&socket.current.readyState===WebSocket.OPEN){socket.current.send(JSON.stringify({type:"chat",text}));setChatText("");}};
-  const sendPosition=()=>{if(socket.current&&socket.current.readyState===WebSocket.OPEN)socket.current.send(JSON.stringify({type:"move",x:pos.x,z:pos.z}));};
+  const sendPosition=()=>{if(socket.current&&socket.current.readyState===WebSocket.OPEN){socket.current.send(JSON.stringify({type:"move",x:pos.x,z:pos.z}));lastMoveAt.current=Date.now();setMessage("Позиция отправлена в комнату.");}else setMessage("Войди в аккаунт и подключись к комнате.");};
 
   return <div className="v2-page">
     <div className="v2-title-row"><div><div className="v2-kicker"><span/> QAZWORLD · V2</div><h1>Твой игровой мир</h1><p>Управляй персонажем, создай аватар и обустрой собственный дом.</p></div><div className={"v2-status "+(connected?"online":"")}>{connected?<Wifi size={15}/>:<WifiOff size={15}/>} {connected?"Комната подключена":"Одиночный режим"}</div></div>
     <div className="v2-layout">
       <section className="v2-game-card">
         <div className="v2-game-top"><div><b>{room==="home"?"Мой уютный дом":"Площадь мечты"}</b><small>{room==="home"?"Личное пространство":"Общая игровая комната"}</small></div><div className="v2-room-actions"><button className={room==="city"?"selected":""} onClick={()=>setRoom("city")}><Gamepad2 size={15}/> Мир</button><button className={room==="home"?"selected":""} onClick={()=>setRoom("home")}><House size={15}/> Дом</button></div></div>
-        <div className="v2-canvas"><V2World room={room} x={pos.x} z={pos.z} avatar={avatar} furniture={house}/><div className="v2-canvas-label">3D · {room==="home"?"HOME / 01":"QAZ CITY / 01"}</div><div className="v2-joystick" ref={stickRef} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);moveStick(e);}} onPointerMove={e=>{if(e.buttons)moveStick(e);}} onPointerUp={endStick} onPointerCancel={endStick}><div className="v2-stick-base"/><div className="v2-stick-knob" style={{transform:"translate("+stick.x*24+"px,"+stick.y*24+"px)"}}/><span>MOVE</span></div><button className="v2-action-button" onClick={sendPosition}>↗ Отправить позицию</button></div>
+        <div className="v2-canvas"><V2World room={room} x={pos.x} z={pos.z} avatar={avatar} furniture={house} remotePositions={remotePositions}/><div className="v2-canvas-label">3D · {room==="home"?"HOME / 01":"QAZ CITY / 01"}</div><div className="v2-joystick" ref={stickRef} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);moveStick(e);}} onPointerMove={e=>{if(e.buttons)moveStick(e);}} onPointerUp={endStick} onPointerCancel={endStick}><div className="v2-stick-base"/><div className="v2-stick-knob" style={{transform:"translate("+stick.x*24+"px,"+stick.y*24+"px)"}}/><span>MOVE</span></div><button className="v2-action-button" onClick={sendPosition}>↗ Отправить позицию</button></div>
         <div className="v2-game-footer"><span>Персонаж: <b>{user?.username||"Гость"}</b></span><span>Координаты: {pos.x.toFixed(1)}, {pos.z.toFixed(1)}</span><span>Игроков в комнате: {players.length|| (user?1:0)}</span></div>
       </section>
       <aside className="v2-controls">
