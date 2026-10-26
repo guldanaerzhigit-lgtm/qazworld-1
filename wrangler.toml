@@ -1,0 +1,26 @@
+name = "qazworld11"
+main = "worker/index.js"
+compatibility_date = "2026-10-26"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "qazworld-db"
+database_id = "15877141-660f-46e0-8f7e-24c7e4338af1"
+migrations_dir = "migrations"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomHub"]
+
+# Add JWT_SECRET in Cloudflare Worker settings or with: npx wrangler secret put JWT_SECRET
+# Never commit production secrets.
