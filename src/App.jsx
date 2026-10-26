@@ -1,10 +1,11 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import {
-  Bell, Compass, House, ShoppingBag, Users, UserRound, Coins, Star,
+  Bell, Compass, House, ShoppingBag, Users, UserRound, Coins, Star, Gamepad2,
   Settings, Search, Plus, ChevronRight, Sparkles, MessageCircle, Gift,
   Trophy, Shirt, X, Check, Menu, Volume2, Map, Heart, LockKeyhole
 } from 'lucide-react';
 import World from './World.jsx';
+import V2Playground from './V2Playground.jsx';
 
 const starterItems = [
   { id: 'hoodie', name: 'Фиолетовый худи', type: 'Одежда', price: 0, color: '#7256d8', owned: true, icon: '👕' },
@@ -18,6 +19,7 @@ const starterItems = [
 const navItems = [
   { id: 'home', label: 'Главная', icon: House },
   { id: 'world', label: 'Мир', icon: Compass },
+  { id: 'v2', label: 'Играть V2', icon: Gamepad2 },
   { id: 'friends', label: 'Друзья', icon: Users },
   { id: 'shop', label: 'Магазин', icon: ShoppingBag },
   { id: 'profile', label: 'Профиль', icon: UserRound }
@@ -90,6 +92,8 @@ export default function App() {
         <div className="breadcrumb"><span>QazWorld</span><span className="crumb-slash">/</span><b>{navItems.find(n => n.id === tab)?.label || 'Мир'}</b></div>
         <div className="top-actions"><button className="search-button" onClick={() => notify('Поиск игроков скоро появится')}><Search size={17} /><span>Найти друзей</span><kbd>⌘ K</kbd></button><button className="notification-button" onClick={() => notify('Пока новых уведомлений нет')} aria-label="Уведомления"><Bell size={19} /><i /></button><div className="coin-pill"><span className="coin-icon">◈</span><b>{coins}</b><span>монет</span><button onClick={claimDaily} title="Получить ежедневный бонус"><Plus size={15} /></button></div></div>
       </header>
+
+      {tab === 'v2' && <V2Playground />}
 
       {tab === 'home' && <div className="page-content">
         <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot" /> ТВОЙ МИР УЖЕ ЖДЁТ</div><h1>С возвращением, <span>{name}</span> <span className="wave">✦</span></h1><p>В твоей вселенной всегда есть место новым открытиям.</p></div><button className="daily-button" onClick={claimDaily}><Gift size={17} /><span>Бонус дня</span><b>+50 ◈</b></button></section>
