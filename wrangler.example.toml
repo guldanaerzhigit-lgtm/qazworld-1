@@ -1,0 +1,25 @@
+name = "qazworld-v2"
+main = "worker/index.js"
+compatibility_date = "2026-10-26"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "qazworld-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomHub"]
+
+# Add JWT_SECRET with: npx wrangler secret put JWT_SECRET
+# Never commit production secrets.
