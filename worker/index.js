@@ -23,6 +23,7 @@ export class RoomHub {
     if (!player.id) return fail("Unauthorized", 401);
     const pair = new WebSocketPair(); const client = pair[0], server = pair[1]; server.accept();
     this.sockets.set(server, player); server.send(JSON.stringify({ type: "welcome", playerId: player.id }));
+    server.send(JSON.stringify({ type: "presence", players: Array.from(this.sockets.values()) }));
     this.broadcast({ type: "presence", players: Array.from(this.sockets.values()) }, server);
     const close = () => { this.sockets.delete(server); this.broadcast({ type: "presence", players: Array.from(this.sockets.values()) }); };
     server.addEventListener("close", close); server.addEventListener("error", close);
